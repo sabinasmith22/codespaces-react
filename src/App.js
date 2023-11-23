@@ -12,10 +12,12 @@ import { generateClient } from 'aws-amplify/api';
 import { createTodo } from './graphql/mutations.ts';
 import { listTodos } from './graphql/queries.ts';
 import { onCreateTodo } from './graphql/subscriptions.ts';
+import { useEffect, useState } from 'react';
 
 // import amplifyconfig from './graphql/schema.json';
 Amplify.configure();
 
+const initialState = {name: '', description: ''};
 const client = generateClient();
 
 const MutationButton = document.getElementById('MutationEventButton');
@@ -24,64 +26,82 @@ const QueryResult = document.getElementById('QueryResult');
 const SubscriptionResult = document.getElementById('SubscriptionResult');
 
 const App = ({ signOut, user }) => {
+  const [formState, setFormState] = useState(initialState);
+  const [todos, setTodos] = useState([]);
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  function setInput(key, value) {
+    setFormState({ ...formState, [key]: value });
+  }
+
+  async function fetchTodos() {
+    try {
+      const todoData = await client.graphql({
+        query: listTodos
+      });
+      const todos = todoData.data.listTodos.items;
+      setTodos(todos);
+    } catch (err) {
+      console.log('error fetching todos');
+    }
+  }
+
+  async function addTodo() {
+    try {
+      if (!formState.name || !formState.description) return;
+      const todo = { ...formState };
+      setTodos([...todos, todo]);
+      setFormState(initialState);
+      await client.graphql({
+        query: createTodo,
+        variables: {
+          input: todo
+        }
+      });
+    } catch (err) {
+      console.log('error creating todo:', err);
+    }
+  }
+
   return (
     <div style={styles.container}>
       <Heading level={1}>Hello {user.username}</Heading>
-      <Button onClick={signOut}>Sign out</Button>
+      <Button onClick={signOut} style={styles.button}>
+        Sign out
+      </Button>
       <h2>Amplify Todos</h2>
-      ...
+      <input
+        onChange={(event) => setInput('name', event.target.value)}
+        style={styles.input}
+        value={formState.name}
+        placeholder="Name"
+      />
+      <input
+        onChange={(event) => setInput('description', event.target.value)}
+        style={styles.input}
+        value={formState.description}
+        placeholder="Description"
+      />
+      <button style={styles.button} onClick={addTodo}>
+        Create Todo
+      </button>
+      {todos.map((todo, index) => (
+        <div key={todo.id ? todo.id : index} style={styles.todo}>
+          <p style={styles.todoName}>{todo.name}</p>
+          <p style={styles.todoDescription}>{todo.description}</p>
+        </div>
+      ))}
     </div>
   );
-}
+};
 
-//
+
 App.propTypes = {
   signOut: PropTypes.func,
   user: PropTypes.object
 }
 
 export default withAuthenticator(App);
-
-async function addTodo() {
-  const todo = {
-    name: 'Use AppSync',
-    description: 'Realtime and Offline (${new Date().toLocaleString()})'
-  };
-
-  return await client.graphql({
-    query: createTodo,
-    variables: { input: todo },
-  });
-}
-
-async function fetchTodos() {
-    try { 
-      const response = await client.graphql({ query: listTodos });
-    
-      response.data.listTodos.items.map((todo,i) => {
-        QueryResult.innerHTML += `<p>${todo.name} - ${todo.description}</p>`;
-      });
-  } catch (e) {
-    console.log('error fetching todos', e);
-  }
-}
-
-MutationButton.addEventListener('click', (evt) => {
-  addTodo().then((evt) => {
-    MutationResult.innerHTML += `<p>${evt.data.createTodo.name} - ${evt.data.createTodo.description}</p>`;
-  });
-});
-
-function subscribeToNewTodos() {
-  client.graphql({ query: onCreateTodo }).subscribe({
-    next: (evt) => {
-      const todo = evt.value.data.onCreateTodo;
-      SubscriptionResult.innerHTML += `<p>${todo.name} - ${todo.description}</p>`;
-    },
-    error: (err) => console.log('error', err)
-  });
-}
-
-
-subscribeToNewTodos();
-fetchTodos();
