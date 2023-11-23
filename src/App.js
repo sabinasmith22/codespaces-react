@@ -1,29 +1,18 @@
-import './App.css';
+import { Amplify } from 'aws-amplify';
 
-function App() {
+import { withAuthenticator } from '@aws-amplify/ui-react'
+import "@aws-amplify/ui-react/styles.css"
+
+import config from './amplifyconfiguration.json';
+Amplify.configure(config);
+
+function App({ signOut, user}) {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src="Octocat.png" className="App-logo" alt="logo" />
-        <p>
-          GitHub Codespaces <span className="heart">♥️</span> React
-        </p>
-        <p className="small">
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </p>
-      </header>
-    </div>
+    <>
+      <h1>Hello {user.username}</h1>
+      <button onCLick={signOut}>Sign out</button>
+    </>
   );
 }
 
-export default App;
+export default withAuthenticator(App);
