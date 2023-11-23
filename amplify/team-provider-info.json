@@ -14,6 +14,16 @@
     "categories": {
       "auth": {
         "codespacesreact8c8c7086": {}
+      },
+      "function": {
+        "AdminQueriesf1d379c5": {
+          "deploymentBucketName": "amplify-codespacesreact-dev-35031-deployment",
+          "s3Key": "amplify-builds/AdminQueriesf1d379c5-4a4c4e4c79556a755870-build.zip"
+        }
+      },
+      "api": {
+        "AdminQueries": {},
+        "codespacesreact": {}
       }
     }
   }
